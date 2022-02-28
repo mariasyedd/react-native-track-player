@@ -7,8 +7,6 @@ import com.facebook.react.bridge.*;
 import com.google.android.exoplayer2.C;
 import com.guichaguri.trackplayer.service.MusicManager;
 import com.google.android.exoplayer2.Player;
-import com.guichaguri.trackplayer.service.MusicBinder;
-import com.guichaguri.trackplayer.service.MusicService;
 import com.guichaguri.trackplayer.service.Utils;
 import com.guichaguri.trackplayer.service.metadata.MetadataManager;
 import com.guichaguri.trackplayer.service.models.NowPlayingMetadata;
