@@ -120,7 +120,7 @@ public class MusicModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void add(ReadableArray tracks, String insertBeforeId, Promise callback) {
+    public void add(ReadableArray tracks, int insertBeforeId, Promise callback) {
         final ArrayList bundleList = Arguments.toList(tracks);
         List<Track> trackList;
 
@@ -133,7 +133,7 @@ public class MusicModule extends ReactContextBaseJavaModule {
 
         List<Track> queue = manager.getPlayback().getQueue();
         // -1 means no index was passed and therefore should be inserted at the end.
-        int index = insertBeforeIndex != -1 ? insertBeforeIndex : queue.size();
+        int index = insertBeforeId != -1 ? insertBeforeId : queue.size();
 
         if(index < 0 || index > queue.size()) {
             callback.reject("index_out_of_bounds", "The track index is out of bounds");
@@ -185,14 +185,6 @@ public class MusicModule extends ReactContextBaseJavaModule {
                 playback.updateTrack(index, track);
                 callback.resolve(null);
             }
-
-        if(index == -1) {
-            callback.reject("track_not_in_queue", "No track found");
-        } else {
-            track.setMetadata(getReactApplicationContext(), map, manager.getMetadata().getRatingType());
-            playback.updateTrack(index, track);
-            callback.resolve(null);
-        }
     }
 
     @ReactMethod
@@ -215,11 +207,6 @@ public class MusicModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void skip(final int index, final Promise callback) {
        manager.getPlayback().skip(index, callback);
-    }
-
-    @ReactMethod
-    public void skip(String track, Promise callback) {
-        manager.getPlayback().skip(track, callback);
     }
 
     @ReactMethod

@@ -93,7 +93,7 @@ public class ButtonEvents extends MediaSessionCompat.Callback {
             if(tracks.get(i).queueId != id) continue;
 
             WritableMap map = Arguments.createMap();
-            map.putString("id", track.id);
+            map.putString("id", tracks.get(i).id);
             manager.emitEvent(MusicEvents.BUTTON_SKIP, map);
             break;
         }

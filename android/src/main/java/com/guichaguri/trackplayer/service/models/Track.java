@@ -61,8 +61,6 @@ public class Track extends TrackMetadata {
     public final long queueId;
 
     public Track(Context context, ReadableMap map, int ratingType) {
-        id = map.getString("id");
-
         resourceId = Utils.getRawResourceId(context, map, "url");
 
         if(resourceId == 0) {
