@@ -153,7 +153,7 @@ public class LocalPlayback extends ExoPlayback<SimpleExoPlayer> {
         lastKnownWindow = C.INDEX_UNSET;
         lastKnownPosition = C.POSITION_UNSET;
 
-        manager.onReset();
+        // manager.onReset();
     }
 
     @Override
