@@ -46,7 +46,8 @@ public class MetadataManager {
     private final ButtonReceiver receiver;
 
     private int ratingType = RatingCompat.RATING_NONE;
-    private int jumpInterval = 15;
+    private int forwardJumpInterval = 15;
+    private int backwardJumpInterval = 15;
     private long actions = 0;
     private long compactActions = 0;
     private SimpleTarget<Bitmap> artworkTarget;
@@ -155,7 +156,8 @@ public class MetadataManager {
         builder.setSmallIcon(getIcon(options, "icon", R.drawable.play));
 
         // Update the jump interval
-        jumpInterval = Utils.getInt(options, "jumpInterval", 15);
+        forwardJumpInterval = Utils.getInt(options, "forwardJumpInterval", 15);
+        backwardJumpInterval = Utils.getInt(options, "backwardJumpInterval", 15);
 
         // Update the rating type
         ratingType = Utils.getInt(options, "ratingType", RatingCompat.RATING_NONE);
@@ -168,8 +170,12 @@ public class MetadataManager {
         return ratingType;
     }
 
-    public int getJumpInterval() {
-        return jumpInterval;
+    public int getForwardJumpInterval() {
+        return forwardJumpInterval;
+    }
+
+    public int getBackwardJumpInterval() {
+        return backwardJumpInterval;
     }
 
     public void removeNotifications() {
@@ -199,7 +205,7 @@ public class MetadataManager {
      * Updates the current track
      * @param track The new track
      */
-    public void updateMetadata(TrackMetadata track) {
+    public void updateMetadata(ExoPlayback playback, TrackMetadata track) {
         MediaMetadataCompat.Builder metadata = track.toMediaMetadata();
 
         RequestManager rm = Glide.with(context.getApplicationContext());
@@ -226,11 +232,13 @@ public class MetadataManager {
         builder.setSubText(track.album);
 
         session.setMetadata(metadata.build());
+
+        updatePlaybackState(playback);
         updateNotification();
     }
 
     /**
-     * Updates the playback state
+     * Updates the playback state and notification buttons
      * @param playback The player
      */
     public void updatePlayback(ExoPlayback playback) {
@@ -286,14 +294,22 @@ public class MetadataManager {
 
         }
 
+        updatePlaybackState(playback);
+        updateNotification();
+    }
+
+    /**
+     * Updates the playback state
+     * @param playback The player
+     */
+    private void updatePlaybackState(ExoPlayback playback) {
         // Updates the media session state
         PlaybackStateCompat.Builder pb = new PlaybackStateCompat.Builder();
         pb.setActions(actions);
-        pb.setState(state, playback.getPosition(), playback.getRate());
+        pb.setState(playback.getState(), playback.getPosition(), playback.getRate());
         pb.setBufferedPosition(playback.getBufferedPosition());
 
         session.setPlaybackState(pb.build());
-        updateNotification();
     }
 
     public void setActive(boolean active) {

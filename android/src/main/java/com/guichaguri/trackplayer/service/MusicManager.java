@@ -140,7 +140,9 @@ public class MusicManager implements OnAudioFocusChangeListener {
                 .setBackBuffer(backBuffer, false)
                 .createDefaultLoadControl();
 
-        SimpleExoPlayer player = ExoPlayerFactory.newSimpleInstance(context, new DefaultRenderersFactory(context), new DefaultTrackSelector(), control);
+        SimpleExoPlayer player = new SimpleExoPlayer.Builder(context)
+                .setLoadControl(control)
+                .build();
 
         player.setAudioAttributes(new com.google.android.exoplayer2.audio.AudioAttributes.Builder()
                 .setContentType(C.CONTENT_TYPE_MUSIC).setUsage(C.USAGE_MEDIA).build());
@@ -222,16 +224,16 @@ public class MusicManager implements OnAudioFocusChangeListener {
             metadata.updatePlayback(playback);
     }
 
-    public void onTrackUpdate(Track previous, long prevPos, Track next) {
+    public void onTrackUpdate(Integer prevIndex, long prevPos, Integer nextIndex, Track next) {
         Log.d(Utils.LOG, "onTrackUpdate");
 
         if(playback.shouldAutoUpdateMetadata() && next != null)
-            metadata.updateMetadata(next);
+            metadata.updateMetadata(playback, next);
 
         WritableMap map = Arguments.createMap();
-        map.putString("track", previous != null ? previous.id : null);
+        if (prevIndex != null) map.putInt("track", prevIndex);
         map.putDouble("position", Utils.toSeconds(prevPos));
-        map.putString("nextTrack", next != null ? next.id : null);
+        if (nextIndex != null) map.putInt("nextTrack", nextIndex);
         emitEvent(MusicEvents.PLAYBACK_TRACK_CHANGED, map);
     }
 
@@ -239,11 +241,11 @@ public class MusicManager implements OnAudioFocusChangeListener {
         metadata.removeNotifications();
     }
 
-    public void onEnd(Track previous, long prevPos) {
+    public void onEnd(Integer previousIndex, long prevPos) {
         Log.d(Utils.LOG, "onEnd");
 
         WritableMap map = Arguments.createMap();
-        map.putString("track", previous != null ? previous.id : null);
+        if (previousIndex != null) map.putInt("track", previousIndex);
         map.putDouble("position", Utils.toSeconds(prevPos));
         emitEvent(MusicEvents.PLAYBACK_QUEUE_ENDED, map);
     }

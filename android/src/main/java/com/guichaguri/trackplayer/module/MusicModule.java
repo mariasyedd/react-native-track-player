@@ -6,6 +6,9 @@ import android.util.Log;
 import com.facebook.react.bridge.*;
 import com.google.android.exoplayer2.C;
 import com.guichaguri.trackplayer.service.MusicManager;
+import com.google.android.exoplayer2.Player;
+import com.guichaguri.trackplayer.service.MusicBinder;
+import com.guichaguri.trackplayer.service.MusicService;
 import com.guichaguri.trackplayer.service.Utils;
 import com.guichaguri.trackplayer.service.metadata.MetadataManager;
 import com.guichaguri.trackplayer.service.models.NowPlayingMetadata;
@@ -79,6 +82,11 @@ public class MusicModule extends ReactContextBaseJavaModule {
         constants.put("RATING_5_STARS", RatingCompat.RATING_5_STARS);
         constants.put("RATING_PERCENTAGE", RatingCompat.RATING_PERCENTAGE);
 
+        // Repeat Modes
+        constants.put("REPEAT_OFF", Player.REPEAT_MODE_OFF);
+        constants.put("REPEAT_TRACK", Player.REPEAT_MODE_ONE);
+        constants.put("REPEAT_QUEUE", Player.REPEAT_MODE_ALL);
+
         return constants;
     }
 
@@ -115,7 +123,7 @@ public class MusicModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void add(ReadableArray tracks, String insertBeforeId, Promise callback) {
-
+        final ArrayList bundleList = Arguments.toList(tracks);
         List<Track> trackList;
 
         try {
@@ -126,22 +134,12 @@ public class MusicModule extends ReactContextBaseJavaModule {
         }
 
         List<Track> queue = manager.getPlayback().getQueue();
-        int index = -1;
+        // -1 means no index was passed and therefore should be inserted at the end.
+        int index = insertBeforeIndex != -1 ? insertBeforeIndex : queue.size();
 
-        if(insertBeforeId != null) {
-            for(int i = 0; i < queue.size(); i++) {
-                if(queue.get(i).id.equals(insertBeforeId)) {
-                    index = i;
-                    break;
-                }
-            }
-        } else {
-            index = queue.size();
-        }
-
-        if(index == -1) {
-            callback.reject("track_not_in_queue", "Given track ID was not found in queue");
-        } else if(trackList.isEmpty()) {
+        if(index < 0 || index > queue.size()) {
+            callback.reject("index_out_of_bounds", "The track index is out of bounds");
+        } else if(trackList == null || trackList.isEmpty()) {
             callback.reject("invalid_track_object", "Track is missing a required key");
         } else if(trackList.size() == 1) {
             manager.getPlayback().add(trackList.get(0), index, callback);
@@ -158,13 +156,14 @@ public class MusicModule extends ReactContextBaseJavaModule {
         List<Integer> indexes = new ArrayList<>();
 
         for(Object o : trackList) {
-            String id = o.toString();
+            int index = o instanceof Integer ? (int)o : Integer.parseInt(o.toString());
 
-            for(int i = 0; i < queue.size(); i++) {
-                if(queue.get(i).id.equals(id)) {
-                    indexes.add(i);
-                    break;
-                }
+            // we do not allow removal of the current item
+            int currentIndex = manager.getPlayback().getCurrentTrackIndex();
+            if (index == currentIndex) continue;
+
+            if (index >= 0 && index < queue.size()) {
+                indexes.add(index);
             }
         }
 
@@ -176,20 +175,18 @@ public class MusicModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void updateMetadataForTrack(String id, ReadableMap map, Promise callback) {
-        ExoPlayback playback = manager.getPlayback();
-        List<Track> queue = playback.getQueue();
-        Track track = null;
-        int index = -1;
+    public void updateMetadataForTrack(int index, ReadableMap map, final Promise callback) {
+            ExoPlayback playback = manager.getPlayback();
+            List<Track> queue = playback.getQueue();
 
-        for(int i = 0; i < queue.size(); i++) {
-            track = queue.get(i);
-
-            if(track.id.equals(id)) {
-                index = i;
-                break;
+            if(index < 0 || index >= queue.size()) {
+                callback.reject("index_out_of_bounds", "The index is out of bounds");
+            } else {
+                Track track = queue.get(index);
+                track.setMetadata(getReactApplicationContext(), Arguments.toBundle(map), manager.getRatingType());
+                playback.updateTrack(index, track);
+                callback.resolve(null);
             }
-        }
 
         if(index == -1) {
             callback.reject("track_not_in_queue", "No track found");
@@ -218,9 +215,8 @@ public class MusicModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void removeUpcomingTracks(Promise callback) {
-        manager.getPlayback().removeUpcomingTracks();
-        callback.resolve(null);
+    public void skip(final int index, final Promise callback) {
+       manager.getPlayback().skip(index, callback);
     }
 
     @ReactMethod
@@ -290,18 +286,28 @@ public class MusicModule extends ReactContextBaseJavaModule {
         callback.resolve(manager.getPlayback().getRate());
     }
 
+     @ReactMethod
+    public void setRepeatMode(int mode, final Promise callback) {
+        manager.getPlayback().setRepeatMode(mode);
+        callback.resolve(null);
+    
+    }
+
     @ReactMethod
-    public void getTrack(String id, Promise callback) {
+    public void getRepeatMode(final Promise callback) {
+        callback.resolve(manager.getPlayback().getRepeatMode());
+    }
+
+    @ReactMethod
+    public void getTrack(final int index, final Promise callback) {
+      
         List<Track> tracks = manager.getPlayback().getQueue();
 
-        for(Track track : tracks) {
-            if(track.id.equals(id)) {
-                callback.resolve(track.originalItem);
-                return;
-            }
+        if (index >= 0 && index < tracks.size()) {
+            callback.resolve(Arguments.fromBundle(tracks.get(index).originalItem));
+        } else {
+            callback.resolve(null);
         }
-
-        callback.resolve(null);
     }
 
     @ReactMethod
@@ -318,8 +324,7 @@ public class MusicModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void getCurrentTrack(Promise callback) {
-        Track track = manager.getPlayback().getCurrentTrack();
-        callback.resolve(track == null ? null : track.id);
+        callback.resolve(manager.getPlayback().getCurrentTrackIndex());
     }
 
     @ReactMethod
@@ -347,6 +352,10 @@ public class MusicModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void getState(Promise callback) {
-        callback.resolve(manager.getPlayback().getState());
+        if (manager == null) {
+            callback.resolve(PlaybackStateCompat.STATE_NONE);
+        } else {
+            callback.resolve(manager.getPlayback().getState());
+        }
     }
 }

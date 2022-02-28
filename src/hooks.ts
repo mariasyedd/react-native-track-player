@@ -1,25 +1,38 @@
 import { useEffect, useState, useRef } from 'react'
-import TrackPlayer, { State, Event } from './index'
+
+import TrackPlayer from './trackPlayer'
+import { State, Event } from './interfaces'
 
 /** Get current playback state and subsequent updatates  */
 export const usePlaybackState = () => {
   const [state, setState] = useState(State.None)
+  const isUnmountedRef = useRef(true)
+
+  useEffect(() => {
+    isUnmountedRef.current = false
+    return () => {
+      isUnmountedRef.current = true
+    }
+  }, [])
 
   useEffect(() => {
     async function setPlayerState() {
       const playerState = await TrackPlayer.getState()
+
+      // If the component has been unmounted, exit
+      if (isUnmountedRef.current) return
+
       setState(playerState)
     }
 
+    // Set initial state
     setPlayerState()
 
     const sub = TrackPlayer.addEventListener(Event.PlaybackState, data => {
       setState(data.state)
     })
 
-    return () => {
-      sub.remove()
-    }
+    return () => sub.remove()
   }, [])
 
   return state
@@ -59,10 +72,14 @@ export const useTrackPlayerEvents = (events: Event[], handler: Handler) => {
       TrackPlayer.addEventListener(event, payload => savedHandler.current!({ ...payload, type: event })),
     )
 
-    return () => {
-      subs.forEach(sub => sub.remove())
-    }
-  }, events)
+    return () => subs.forEach(sub => sub.remove())
+  }, [events])
+}
+
+export interface ProgressState {
+  position: number
+  duration: number
+  buffered: number
 }
 
 /**
@@ -70,8 +87,17 @@ export const useTrackPlayerEvents = (events: Event[], handler: Handler) => {
  * @param interval - ms interval
  */
 export function useProgress(updateInterval?: number) {
-  const [state, setState] = useState({ position: 0, duration: 0, buffered: 0 })
+  const [state, setState] = useState<ProgressState>({ position: 0, duration: 0, buffered: 0 })
   const playerState = usePlaybackState()
+  const stateRef = useRef(state)
+  const isUnmountedRef = useRef(true)
+
+  useEffect(() => {
+    isUnmountedRef.current = false
+    return () => {
+      isUnmountedRef.current = true
+    }
+  }, [])
 
   const getProgress = async () => {
     const [position, duration, buffered] = await Promise.all([
@@ -79,14 +105,36 @@ export function useProgress(updateInterval?: number) {
       TrackPlayer.getDuration(),
       TrackPlayer.getBufferedPosition(),
     ])
-    setState({ position, duration, buffered })
+
+    // If the component has been unmounted, exit
+    if (isUnmountedRef.current) return
+
+    // If there is no change in properties, exit
+    if (
+      position === stateRef.current.position &&
+      duration === stateRef.current.duration &&
+      buffered === stateRef.current.buffered
+    )
+      return
+
+    const state = { position, duration, buffered }
+    stateRef.current = state
+    setState(state)
   }
 
   useEffect(() => {
-    if (playerState !== State.Playing && playerState !== State.Buffering) return
+    if (playerState === State.None) {
+      setState({ position: 0, duration: 0, buffered: 0 })
+      return
+    }
+
+    // Set initial state
+    getProgress()
+
+    // Create interval to update state periodically
     const poll = setInterval(getProgress, updateInterval || 1000)
     return () => clearInterval(poll)
-  }, [playerState])
+  }, [playerState, updateInterval])
 
   return state
 }

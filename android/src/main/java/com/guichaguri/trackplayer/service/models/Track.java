@@ -46,7 +46,6 @@ public class Track extends TrackMetadata {
         return tracks;
     }
 
-    public String id;
     public Uri uri;
     public int resourceId;
 
@@ -114,7 +113,6 @@ public class Track extends TrackMetadata {
         MediaMetadataCompat.Builder builder = super.toMediaMetadata();
 
         builder.putString(METADATA_KEY_MEDIA_URI, uri.toString());
-        builder.putString(METADATA_KEY_MEDIA_ID, id);
 
         return builder;
     }
@@ -123,7 +121,6 @@ public class Track extends TrackMetadata {
         MediaDescriptionCompat descr = new MediaDescriptionCompat.Builder()
                 .setTitle(title)
                 .setSubtitle(artist)
-                .setMediaId(id)
                 .setMediaUri(uri)
                 .setIconUri(artwork)
                 .build();

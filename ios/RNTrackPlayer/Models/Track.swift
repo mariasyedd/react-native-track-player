@@ -9,9 +9,9 @@
 import Foundation
 import MediaPlayer
 import AVFoundation
+import SwiftAudioEx
 
 class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding {
-    let id: String
     let url: MediaURL
     
     @objc var title: String
@@ -25,6 +25,7 @@ class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding {
     var artworkURL: MediaURL?
     let headers: [String: Any]?
     let pitchAlgorithm: String?
+    var isLiveStream: Bool?
     
     @objc var album: String?
     @objc var artwork: MPMediaItemArtwork?
@@ -32,13 +33,11 @@ class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding {
     private var originalObject: [String: Any]
     
     init?(dictionary: [String: Any]) {
-        guard let id = dictionary["id"] as? String,
-            let title = dictionary["title"] as? String,
+        guard let title = dictionary["title"] as? String,
             let artist = dictionary["artist"] as? String,
             let url = MediaURL(object: dictionary["url"])
             else { return nil }
         
-        self.id = id
         self.url = url
         self.title = title
         self.artist = artist
@@ -51,6 +50,7 @@ class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding {
         self.headers = dictionary["headers"] as? [String: Any]
         self.artworkURL = MediaURL(object: dictionary["artwork"])
         self.pitchAlgorithm = dictionary["pitchAlgorithm"] as? String
+        self.isLiveStream = dictionary["isLiveStream"] as? Bool
         
         self.originalObject = dictionary
     }
@@ -72,6 +72,7 @@ class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding {
         self.desc = dictionary["description"] as? String
         self.duration = dictionary["duration"] as? Double
         self.artworkURL = MediaURL(object: dictionary["artwork"])
+        self.isLiveStream = dictionary["isLiveStream"] as? Bool
         
         self.originalObject = self.originalObject.merging(dictionary) { (_, new) in new }
     }
@@ -79,7 +80,7 @@ class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding {
     // MARK: - AudioItem Protocol
     
     func getSourceUrl() -> String {
-        return url.value.absoluteString
+        return url.isLocal ? url.value.path : url.value.absoluteString
     }
     
     func getArtist() -> String? {

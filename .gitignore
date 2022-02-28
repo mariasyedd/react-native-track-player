@@ -6,7 +6,6 @@ build/
 lib/
 DerivedData/
 package-lock.json
-yarn.lock
 .idea/
 
 # Android
@@ -17,7 +16,6 @@ android/build/
 android/gradle/
 android/captures/
 android/local.properties
-gradle.properties
 android/*.iml
 android/gradlew
 android/gradlew.bat
@@ -55,3 +53,6 @@ xcuserdata/
 *.dSYM
 example/ios/Pods
 /ios/RNTrackPlayer.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+ios/Pods
+ios/RNTrackPlayer.xcworkspace
+Podfile.lock

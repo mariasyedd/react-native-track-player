@@ -1,6 +1,6 @@
 {
   "name": "react-native-track-player",
-  "version": "1.2.2",
+  "version": "2.1.2",
   "description": "A fully fledged audio module created for music apps",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -9,7 +9,7 @@
     "lint": "eslint \"src/**/*.ts\"",
     "format": "prettier --write \"src/**/*.ts\"",
     "prepare": "yarn build",
-    "prepublishOnly": "git submodule update --init --recursive && yarn lint",
+    "prepublishOnly": "yarn lint",
     "preversion": "yarn lint",
     "version": "yarn format && git add -A src",
     "postversion": "git push && git push --tags"
@@ -30,6 +30,10 @@
       "name": "Guilherme Chaguri",
       "email": "guichaguri@gmail.com",
       "url": "http://guichaguri.com"
+    },
+    {
+      "name": "Dustin Bahr",
+      "email": "dustin@curiousmedia.com"
     }
   ],
   "keywords": [
@@ -57,7 +61,13 @@
   },
   "peerDependencies": {
     "react": ">=16.8.6",
-    "react-native": ">=0.60.0-rc.2"
+    "react-native": ">=0.60.0-rc.2",
+    "react-native-windows": ">=0.63.0"
+  },
+  "peerDependenciesMeta": {
+    "react-native-windows": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/react-native": "^0.60.0",
@@ -66,6 +76,7 @@
     "eslint": "^5.16.0",
     "eslint-config-prettier": "^4.2.0",
     "eslint-plugin-prettier": "^3.0.1",
+    "eslint-plugin-react-hooks": "^4.2.0",
     "prettier": "^1.17.0",
     "rimraf": "^2.6.2",
     "typescript": "^3.2.4"
